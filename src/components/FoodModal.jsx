@@ -1,28 +1,66 @@
 import { useState } from "react";
-import { X, Star, Send } from "lucide-react";
+import { X, Star, Send, ChevronLeft, ChevronRight, ShoppingCart, Trash2 } from "lucide-react";
 import { api } from "../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function FoodModal({ food, onClose }) {
+export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
     const [rating, setRating] = useState(5);
     const [comment, setComment] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+    // Support both old image field and new images array
+    const images = food.images && food.images.length > 0
+        ? food.images.map(img => typeof img === 'string' ? { url: img } : img)
+        : food.image
+            ? [{ url: food.image }]
+            : [];
+
+    const currentImage = images[currentImageIndex]?.url || '';
+
+    const handlePrevImage = () => {
+        setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    };
+
+    const handleNextImage = () => {
+        setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    };
 
     const submitReview = async () => {
         if (!comment.trim()) return;
         setSubmitting(true);
 
         try {
-            const token = localStorage.getItem('token'); // Might be null if guest
-            await api.addReview(food.id, { rating, comment }, token || "");
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const token = localStorage.getItem('token');
+
+            await api.addReview(food._id, {
+                rating,
+                comment,
+                name: userData.name || 'Anonymous',
+                user: userData._id || null
+            }, token || "");
 
             setComment("");
+            setRating(5);
             alert("Review submitted!");
-            window.location.reload(); // Refresh to show new rating
+            window.location.reload();
         } catch (e) {
             alert("Error submitting review: " + e.message);
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleDeleteReview = async (reviewId) => {
+        if (!window.confirm("Delete this review?")) return;
+        try {
+            const token = localStorage.getItem('token');
+            await api.deleteReview(food._id, reviewId, token);
+            alert("Review deleted");
+            window.location.reload();
+        } catch (e) {
+            alert("Error deleting review: " + e.message);
         }
     };
 
@@ -53,24 +91,81 @@ export default function FoodModal({ food, onClose }) {
                     <button onClick={onClose} style={{
                         position: 'absolute', top: 15, right: 15, zIndex: 10,
                         background: 'rgba(0,0,0,0.5)', borderRadius: '50%', width: '32px', height: '32px',
-                        padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none'
                     }}>
                         <X size={18} />
                     </button>
 
-                    <div style={{ position: 'relative', height: '250px' }}>
-                        <img src={food.image} alt={food.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {/* Image Gallery */}
+                    <div style={{ position: 'relative', height: '250px', background: '#000' }}>
+                        <img src={currentImage} alt={food.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+
+                        {images.length > 1 && (
+                            <>
+                                <button
+                                    onClick={handlePrevImage}
+                                    style={{
+                                        position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)',
+                                        background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white',
+                                        borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}
+                                >
+                                    <ChevronLeft size={20} />
+                                </button>
+                                <button
+                                    onClick={handleNextImage}
+                                    style={{
+                                        position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                                        background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white',
+                                        borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}
+                                >
+                                    <ChevronRight size={20} />
+                                </button>
+                                <div style={{
+                                    position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)',
+                                    background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 10px',
+                                    borderRadius: '16px', fontSize: '0.85rem'
+                                }}>
+                                    {currentImageIndex + 1} / {images.length}
+                                </div>
+                            </>
+                        )}
+
                         <div style={{
                             position: 'absolute', bottom: 0, left: 0, right: 0,
                             background: 'linear-gradient(to top, var(--bg-card), transparent)', padding: '20px', paddingTop: '60px'
                         }}>
-                            <h2 style={{ fontSize: '2rem', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>{food.name}</h2>
+                            <h2 style={{ fontSize: '2rem', textShadow: '0 2px 4px rgba(0,0,0,0.5)', margin: 0 }}>{food.name}</h2>
                             <span style={{ fontSize: '1.2rem', color: 'var(--primary)', fontWeight: 'bold' }}>${food.price}</span>
                         </div>
                     </div>
 
                     <div style={{ padding: '30px' }}>
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                            <button
+                                onClick={() => onAddToCart && onAddToCart(food)}
+                                style={{
+                                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    background: 'var(--primary)', color: 'white', border: 'none',
+                                    padding: '12px', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer'
+                                }}
+                            >
+                                <ShoppingCart size={20} /> Add to Cart
+                            </button>
+                        </div>
 
+                        {/* Description */}
+                        {food.description && (
+                            <div style={{ marginBottom: '20px', padding: '15px', background: 'var(--glass)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                                <p style={{ margin: 0, color: 'var(--text-main)', lineHeight: '1.6' }}>{food.description}</p>
+                            </div>
+                        )}
+
+                        {/* Review Form */}
                         <div style={{ marginBottom: '30px', background: 'var(--glass)', padding: '20px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
                             <h3 style={{ marginBottom: '15px', fontSize: '1.1rem' }}>Write a Review</h3>
                             <div style={{ display: 'flex', gap: '5px', marginBottom: '15px' }}>
@@ -103,7 +198,8 @@ export default function FoodModal({ food, onClose }) {
                                     disabled={submitting || !comment.trim()}
                                     style={{
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        width: '50px', height: 'auto', borderRadius: '8px', padding: 0
+                                        width: '50px', height: 'auto', borderRadius: '8px', padding: 0,
+                                        background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer'
                                     }}
                                 >
                                     {submitting ? <div className="spinner">...</div> : <Send size={20} />}
@@ -111,32 +207,51 @@ export default function FoodModal({ food, onClose }) {
                             </div>
                         </div>
 
+                        {/* Reviews List */}
                         <div className="reviews-list">
                             <h3 style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: '10px', marginBottom: '15px' }}>
                                 Reviews <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 'normal' }}>({food.reviews?.length || 0})</span>
                             </h3>
 
                             {(!food.reviews || food.reviews.length === 0) ? (
-                                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>No reviews yet. Be the first to try it!</p>
+                                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>No reviews yet. Be the first!</p>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                     {(food.reviews || []).slice().reverse().map((r, i) => (
                                         <motion.div
-                                            key={r.id || i}
+                                            key={r._id || i}
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: i * 0.05 }}
                                             className="review-item"
                                         >
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                                <div style={{ display: 'flex', gap: '2px' }}>
-                                                    {[...Array(5)].map((_, i) => (
-                                                        <Star key={i} size={12} fill={i < r.rating ? "#FFD700" : "none"} color={i < r.rating ? "#FFD700" : "#444"} />
-                                                    ))}
+                                                <div>
+                                                    <div style={{ display: 'flex', gap: '2px', marginBottom: '4px' }}>
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star key={i} size={12} fill={i < r.rating ? "#FFD700" : "none"} color={i < r.rating ? "#FFD700" : "#444"} />
+                                                        ))}
+                                                    </div>
+                                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>
+                                                        {r.name || 'Anonymous'}
+                                                    </span>
                                                 </div>
-                                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                    {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'Recent'}
-                                                </span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                        {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'Recent'}
+                                                    </span>
+                                                    {isAdmin && (
+                                                        <button
+                                                            onClick={() => handleDeleteReview(r._id)}
+                                                            style={{
+                                                                background: 'none', border: 'none', color: 'red', cursor: 'pointer', padding: 0
+                                                            }}
+                                                            title="Delete Review"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                             <p style={{ margin: 0, lineHeight: '1.5', color: '#ddd' }}>{r.comment}</p>
                                         </motion.div>

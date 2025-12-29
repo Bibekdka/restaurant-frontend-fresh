@@ -1,21 +1,40 @@
 import React from "react";
-import { Star } from "lucide-react";
+import { Star, Edit2, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function FoodCard({ food, onClick }) {
+export default function FoodCard({ food, onClick, onEdit, onDelete, isAdmin = false }) {
+  const handleEditClick = (e) => {
+    e.stopPropagation();
+    if (onEdit && isAdmin) onEdit(food);
+  };
+
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    if (onDelete && isAdmin) {
+      if (window.confirm(`Delete "${food.name}"?`)) {
+        onDelete(food._id);
+      }
+    }
+  };
+
   return (
     <motion.div 
-      layoutId={`card-${food.id}`}
+      layoutId={`card-${food._id}`}
       className="food-card" 
       onClick={onClick}
       whileHover={{ y: -5 }}
+      style={{ position: "relative" }}
     >
       <div className="food-image-wrapper">
-        <img src={food.image} alt={food.name} className="food-image"/>
+        <img 
+          src={food.image || (food.images && food.images[0]?.url) || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=60'} 
+          alt={food.name} 
+          className="food-image"
+        />
       </div>
       <div className="food-info">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
-          <h3 style={{ margin: 0, fontSize: "1.2rem" }}>{food.name}</h3>
+          <h3 style={{ margin: 0, fontSize: "1.2rem", maxWidth: "70%" }}>{food.name}</h3>
           <p className="food-price">${food.price}</p>
         </div>
         
@@ -28,6 +47,36 @@ export default function FoodCard({ food, onClick }) {
           <span>
             {food.reviews?.length || 0} reviews
           </span>
+        </div>
+
+        {/* Edit and Delete buttons - Only show for admins */}
+        <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+          {isAdmin && onEdit && (
+            <button
+              onClick={handleEditClick}
+              style={{
+                display: "flex", alignItems: "center", gap: "4px",
+                background: "rgba(100, 150, 255, 0.2)", color: "#6496ff",
+                border: "1px solid #6496ff", borderRadius: "6px", padding: "6px 10px",
+                cursor: "pointer", fontSize: "0.85rem", fontWeight: "500"
+              }}
+            >
+              <Edit2 size={14} /> Edit
+            </button>
+          )}
+          {isAdmin && onDelete && (
+            <button
+              onClick={handleDeleteClick}
+              style={{
+                display: "flex", alignItems: "center", gap: "4px",
+                background: "rgba(255, 100, 100, 0.2)", color: "#ff6464",
+                border: "1px solid #ff6464", borderRadius: "6px", padding: "6px 10px",
+                cursor: "pointer", fontSize: "0.85rem", fontWeight: "500"
+              }}
+            >
+              <Trash2 size={14} /> Delete
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
