@@ -13,12 +13,49 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
     const [preview, setPreview] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const fileInputRef = useRef(null); // FIX: Define the ref
 
     const isEditMode = !!product;
+
+    // Validate form inputs
+    const validateForm = () => {
+        if (!name || name.trim().length < 2) {
+            setError("Food name must be at least 2 characters");
+            return false;
+        }
+        if (name.length > 150) {
+            setError("Food name is too long");
+            return false;
+        }
+        if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
+            setError("Price must be a positive number");
+            return false;
+        }
+        if (parseFloat(price) > 999999) {
+            setError("Price is too high");
+            return false;
+        }
+        if (description && description.length > 1000) {
+            setError("Description is too long");
+            return false;
+        }
+        return true;
+    };
 
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
         if (selectedFile) {
+            // Validate file size (5MB)
+            if (selectedFile.size > 5 * 1024 * 1024) {
+                setError("File size must be less than 5MB");
+                return;
+            }
+            // Validate file type
+            if (!['image/jpeg', 'image/png', 'image/jpg'].includes(selectedFile.type)) {
+                setError("Only JPG and PNG files are allowed");
+                return;
+            }
+            setError(null);
             setFile(selectedFile);
             setPreview(URL.createObjectURL(selectedFile));
         }
@@ -26,7 +63,7 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
 
     const handleAddImage = async () => {
         if (!file && !preview) {
-            alert("Please select an image first");
+            setError("Please select an image first");
             return;
         }
 
@@ -53,8 +90,9 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
 
             setFile(null);
             setPreview(null);
+            setError(null);
         } catch (error) {
-            alert("Failed to add image: " + error.message);
+            setError("Failed to add image: " + error.message);
         } finally {
             setLoading(false);
         }
@@ -67,8 +105,9 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
                 await api.deleteImageFromProduct(product._id, index, token);
                 const updated = await api.getProductById(product._id);
                 setImages(updated.images || []);
+                setError(null);
             } catch (error) {
-                alert("Failed to remove image: " + error.message);
+                setError("Failed to remove image: " + error.message);
             }
         } else {
             setImages(images.filter((_, i) => i !== index));
@@ -78,8 +117,8 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
-        if (!name || !price) {
-            setError("Name and Price are required!");
+
+        if (!validateForm()) {
             return;
         }
 
@@ -94,10 +133,10 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
             if (isEditMode) {
                 // Update existing product
                 await api.updateProduct(product._id, {
-                    name,
+                    name: name.trim(),
                     price: parseFloat(price),
                     category,
-                    description,
+                    description: description.trim(),
                 }, token);
 
                 if (onProductUpdated) {
@@ -113,11 +152,11 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
                 }
 
                 await api.createProduct({
-                    name,
+                    name: name.trim(),
                     price: parseFloat(price),
                     images,
                     category,
-                    description,
+                    description: description.trim(),
                 }, token);
 
                 window.location.reload();
@@ -190,7 +229,8 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
                             border: "1px solid #fcc",
                             borderRadius: "6px",
                             color: "#c33",
-                            fontSize: "0.9rem"
+                            fontSize: "0.9rem",
+                            marginBottom: "15px"
                         }}>
                             {error}
                         </div>

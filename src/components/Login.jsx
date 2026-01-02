@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
 
 export default function Login() {
@@ -8,23 +9,51 @@ export default function Login() {
     const [signup, setSignup] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const { login } = useAuth();
+
+    // Validate email format
+    const validateEmail = (email) => {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+    };
+
+    // Validate password strength
+    const validatePassword = (password) => {
+        return password && password.length >= 6;
+    };
 
     const submit = async (e) => {
         e.preventDefault();
-        setLoading(true);
         setError("");
+
+        // Client-side validation
+        if (!email || !password) {
+            setError("Email and password are required");
+            return;
+        }
+
+        if (!validateEmail(email)) {
+            setError("Please enter a valid email address");
+            return;
+        }
+
+        if (!validatePassword(password)) {
+            setError("Password must be at least 6 characters");
+            return;
+        }
+
+        setLoading(true);
 
         try {
             if (signup) {
-                const data = await api.register({ name: email.split('@')[0], email, password });
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data));
-                window.location.reload();
+                const name = email.split('@')[0]; // Use email prefix as default name
+                const data = await api.register({ name, email, password });
+                login(data, data.token);
+                // Don't reload, context will handle state update
             } else {
                 const data = await api.login({ email, password });
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data));
-                window.location.reload();
+                login(data, data.token);
+                // Don't reload, context will handle state update
             }
         } catch (err) {
             setError(err.message);
@@ -64,6 +93,7 @@ export default function Login() {
                         type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
+                        disabled={loading}
                         required
                     />
                     <input
@@ -72,6 +102,7 @@ export default function Login() {
                         placeholder="Password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
+                        disabled={loading}
                         required
                     />
                     <button style={{ width: '100%', marginTop: '10px' }} disabled={loading}>
@@ -81,8 +112,11 @@ export default function Login() {
 
                 <div style={{ marginTop: '20px' }}>
                     <button
-                        onClick={() => setSignup(!signup)}
-                        style={{ background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9rem', padding: 0 }}
+                        onClick={() => {
+                            setSignup(!signup);
+                            setError("");
+                        }}
+                        style={{ background: 'transparent', color: 'var(--text-muted)', fontSize: '0.9rem', padding: 0, border: 'none', cursor: 'pointer' }}
                     >
                         {signup ? "Already have an account? Login" : "Don't have an account? Sign Up"}
                     </button>

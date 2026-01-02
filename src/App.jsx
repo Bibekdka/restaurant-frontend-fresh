@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { LogOut, User, PlusCircle, ShoppingCart, List, ClipboardList } from "lucide-react";
 import { api } from "./lib/api";
-import { getUserRole } from "./lib/jwt";
+import { useAuth } from "./context/AuthContext";
+import { useCart } from "./context/CartContext";
 import Login from "./components/Login";
 import FoodCard from "./components/FoodCard";
 import FoodModal from "./components/FoodModal";
@@ -11,36 +12,30 @@ import MyOrders from "./components/MyOrders";
 import OrderList from "./components/OrderList";
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const { user, token, userRole, loading: authLoading, logout } = useAuth();
+  const { cart, addToCart, removeFromCart, clearCart } = useCart();
+
   const [foods, setFoods] = useState([]);
   const [selected, setSelected] = useState(null);
   const [editingFood, setEditingFood] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sortType, setSortType] = useState("rating");
-  const [userRole, setUserRole] = useState("user");
-
-  // New State
   const [view, setView] = useState("menu"); // menu, cart, orders, admin-orders
-  const [cart, setCart] = useState([]);
 
+  // Load products on component mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-    if (token && userStr) {
-      setUser(JSON.parse(userStr));
-      const role = getUserRole();
-      setUserRole(role);
-    }
-    setLoading(false);
-  }, []);
+    if (authLoading) return; // Wait for auth to load
 
-  useEffect(() => {
     const fetchFoods = async () => {
       try {
         setLoading(true);
         const data = await api.getProducts();
-        if (data) {
+        if (data && data.products) {
+          const mappedData = data.products.map(item => ({ ...item, id: item._id }));
+          setFoods(mappedData);
+        } else if (Array.isArray(data)) {
+          // Fallback for API that returns array directly
           const mappedData = data.map(item => ({ ...item, id: item._id }));
           setFoods(mappedData);
         }
@@ -52,7 +47,7 @@ export default function App() {
     };
 
     fetchFoods();
-  }, []);
+  }, [authLoading]);
 
   const sortedFoods = [...foods].sort((a, b) => {
     if (sortType === "rating") return (b.rating || 0) - (a.rating || 0);
@@ -67,9 +62,12 @@ export default function App() {
   };
 
   const handleDeleteFood = async (foodId) => {
-    const token = localStorage.getItem('token');
     if (!token) {
       alert("You must be logged in to delete items");
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to delete this item?")) {
       return;
     }
 
@@ -82,26 +80,6 @@ export default function App() {
     }
   };
 
-  const handleAddToCart = (food, qty = 1) => {
-    const existItem = cart.find(x => x.product === food._id);
-    if (existItem) {
-      setCart(cart.map(x => x.product === food._id ? { ...existItem, qty: existItem.qty + qty } : x));
-    } else {
-      setCart([...cart, { ...food, product: food._id, qty }]);
-    }
-    alert("Added to cart!");
-    setSelected(null); // Close modal on add
-  };
-
-  const removeFromCart = (productId) => {
-    setCart(cart.filter(x => x.product !== productId));
-  };
-
-  const clearCart = () => {
-    setCart([]);
-    setView('my-orders'); // Redirect to orders after purchase
-  };
-
   const handleCloseAddModal = () => {
     setShowAddModal(false);
     setEditingFood(null);
@@ -112,8 +90,8 @@ export default function App() {
     const fetchFoods = async () => {
       try {
         const data = await api.getProducts();
-        if (data) {
-          const mappedData = data.map(item => ({ ...item, id: item._id }));
+        if (data && data.products) {
+          const mappedData = data.products.map(item => ({ ...item, id: item._id }));
           setFoods(mappedData);
         }
       } catch (error) {
@@ -128,7 +106,29 @@ export default function App() {
     setSelected(null);
   };
 
-  if (loading) return <div className="container" style={{ display: 'flex', justifyContent: 'center', marginTop: '50px' }}>Loading...</div>;
+  const handleLogout = () => {
+    logout();
+    setView("menu");
+  };
+
+  if (authLoading || loading) {
+    return (
+      <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '3px solid var(--glass-border)', 
+            borderTop: '3px solid var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 20px'
+          }}></div>
+          <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) return <Login />;
 
@@ -143,7 +143,7 @@ export default function App() {
             Fine Dining
           </h2>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
 
           {/* View Switchers */}
           <button
@@ -175,10 +175,9 @@ export default function App() {
           >
             <ShoppingCart size={16} />
             {cart.length > 0 && (
-              <span style={{ position: 'absolute', top: -5, right: -5, background: 'red', borderRadius: '50%', width: '15px', height: '15px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{cart.reduce((a, c) => a + c.qty, 0)}</span>
+              <span style={{ position: 'absolute', top: -5, right: -5, background: 'red', borderRadius: '50%', width: '15px', height: '15px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>{cart.reduce((a, c) => a + c.qty, 0)}</span>
             )}
           </button>
-
 
           {userRole === 'admin' && view === 'menu' && <button
             onClick={() => {
@@ -206,17 +205,13 @@ export default function App() {
             </select>
           )}
 
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
             <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--glass)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <User size={16} />
             </div>
-            {/* {user.email} */}
+            <span title={user?.email}>{user?.name || 'User'}</span>
           </span>
-          <button onClick={() => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setUser(null);
-          }} style={{ background: 'var(--bg-card)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px' }}>
+          <button onClick={handleLogout} style={{ background: 'var(--bg-card)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px', borderRadius: '6px', color: 'white' }}>
             <LogOut size={14} />
           </button>
         </div>
@@ -270,7 +265,7 @@ export default function App() {
         <FoodModal
           food={selected}
           onClose={handleCloseModal}
-          onAddToCart={handleAddToCart}
+          onAddToCart={addToCart}
           isAdmin={userRole === 'admin'}
         />
       )}
@@ -282,6 +277,12 @@ export default function App() {
           onProductUpdated={handleProductUpdated}
         />
       )}
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
