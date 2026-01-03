@@ -2,7 +2,6 @@ import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { ShoppingCart, User, LogOut, Menu as MenuIcon, ClipboardList, Home } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 export default function Layout() {
     const { user, logout, userRole } = useAuth();
@@ -77,17 +76,7 @@ export default function Layout() {
             </header>
 
             <main>
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={location.pathname}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <Outlet />
-                    </motion.div>
-                </AnimatePresence>
+                <Outlet />
             </main>
         </div>
     );
