@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { useCart } from '../context/CartContext';
+import { useNavigate } from 'react-router-dom';
+import { RefreshCw } from 'lucide-react';
 
 export default function MyOrders() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { addToCart } = useCart();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -23,6 +28,19 @@ export default function MyOrders() {
         fetchOrders();
     }, []);
 
+    const handleReorder = (order) => {
+        if (!order || !order.orderItems) return;
+
+        // Add all items to cart
+        order.orderItems.forEach(item => {
+            // We need to pass _id because cart expects food._id
+            addToCart({ ...item, _id: item.product }, item.qty);
+        });
+
+        // Redirect to cart
+        navigate('/cart');
+    };
+
     if (loading) return <div style={{ color: 'white', textAlign: 'center', padding: '20px' }}>Loading orders...</div>;
 
     return (
@@ -34,13 +52,28 @@ export default function MyOrders() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     {orders.slice().reverse().map(order => (
                         <div key={order._id} style={{ background: 'var(--glass)', padding: '20px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                <span style={{ fontWeight: 'bold' }}>Order #{order._id.slice(-6)}</span>
-                                <span style={{ color: 'var(--primary)' }}>${order.totalPrice.toFixed(2)}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                <div>
+                                    <span style={{ fontWeight: 'bold', display: 'block' }}>Order #{order._id.slice(-6)}</span>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                        {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
+                                    <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>${order.totalPrice.toFixed(2)}</span>
+                                    <button
+                                        onClick={() => handleReorder(order)}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '5px',
+                                            background: 'var(--primary)', color: 'white', border: 'none',
+                                            borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', fontSize: '0.85rem'
+                                        }}
+                                    >
+                                        <RefreshCw size={14} /> Reorder
+                                    </button>
+                                </div>
                             </div>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                                {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
-                            </div>
+
                             <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '10px' }}>
                                 {order.orderItems.map((item, i) => (
                                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '5px' }}>
