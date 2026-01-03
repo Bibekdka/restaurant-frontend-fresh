@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -10,6 +11,7 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const { login } = useAuth();
+    const navigate = useNavigate();
 
     // Validate email format
     const validateEmail = (email) => {
@@ -49,11 +51,11 @@ export default function Login() {
                 const name = email.split('@')[0]; // Use email prefix as default name
                 const data = await api.register({ name, email, password });
                 login(data, data.token);
-                // Don't reload, context will handle state update
+                navigate('/menu');
             } else {
                 const data = await api.login({ email, password });
                 login(data, data.token);
-                // Don't reload, context will handle state update
+                navigate('/menu');
             }
         } catch (err) {
             setError(err.message);

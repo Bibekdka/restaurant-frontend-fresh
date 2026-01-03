@@ -85,7 +85,8 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
                     onClick={e => e.stopPropagation()}
                     style={{
                         position: 'relative', width: '90%', maxWidth: '600px',
-                        maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px', padding: '0'
+                        maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px', padding: '0',
+                        background: 'var(--bg-dark)', border: '1px solid var(--glass-border)'
                     }}
                 >
                     <button onClick={onClose} style={{

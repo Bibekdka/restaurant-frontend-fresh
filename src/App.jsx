@@ -6,6 +6,7 @@ import Layout from "./layouts/Layout";
 // Pages
 import Home from "./pages/Home";
 import Menu from "./pages/Menu";
+import ComingSoon from "./pages/ComingSoon";
 import Login from "./components/Login";
 // Create placeholder components for now if they don't exist, or reuse existing
 import Cart from "./components/Cart";
@@ -57,6 +58,8 @@ export default function App() {
                   <OrderList />
                 </AdminRoute>
               } />
+
+              <Route path="*" element={<ComingSoon />} />
             </Route>
           </Routes>
         </Router>
