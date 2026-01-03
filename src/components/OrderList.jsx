@@ -10,8 +10,8 @@ export default function OrderList() {
             try {
                 const token = localStorage.getItem('token');
                 if (token) {
-                    const data = await api.getOrders(token);
-                    setOrders(data);
+                    const response = await api.getOrders(token);
+                    setOrders(response.orders || []);
                 }
             } catch (error) {
                 console.error("Error fetching orders:", error);

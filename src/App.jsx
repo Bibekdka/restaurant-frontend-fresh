@@ -1,289 +1,66 @@
-import { useState, useEffect } from "react";
-import { LogOut, User, PlusCircle, ShoppingCart, List, ClipboardList } from "lucide-react";
-import { api } from "./lib/api";
-import { useAuth } from "./context/AuthContext";
-import { useCart } from "./context/CartContext";
-import Login from "./components/Login";
-import FoodCard from "./components/FoodCard";
-import FoodModal from "./components/FoodModal";
-import AddFoodModal from "./components/AddFoodModal";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import { CartProvider } from "./context/CartContext";
+import Layout from "./layouts/Layout";
+
+// Pages
+import Home from "./pages/Home";
+import Menu from "./pages/Menu";
+import Login from "./pages/Login";
+// Create placeholder components for now if they don't exist, or reuse existing
 import Cart from "./components/Cart";
 import MyOrders from "./components/MyOrders";
 import OrderList from "./components/OrderList";
+import { useAuth } from "./context/AuthContext";
+import { useCart } from "./context/CartContext";
+
+// Private Route Component
+const PrivateRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="spinner"></div>;
+  return user ? children : <Navigate to="/login" />;
+};
+
+const AdminRoute = ({ children }) => {
+  const { user, userRole, loading } = useAuth();
+  if (loading) return <div className="spinner"></div>;
+  return user && userRole === 'admin' ? children : <Navigate to="/" />;
+};
+
+// Wrapper for Cart to pass props
+const CartPage = () => {
+  const { cart, removeFromCart, clearCart } = useCart();
+  return <Cart cart={cart} onRemove={removeFromCart} onClear={clearCart} />;
+};
 
 export default function App() {
-  const { user, token, userRole, loading: authLoading, logout } = useAuth();
-  const { cart, addToCart, removeFromCart, clearCart } = useCart();
-
-  const [foods, setFoods] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [editingFood, setEditingFood] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [sortType, setSortType] = useState("rating");
-  const [view, setView] = useState("menu"); // menu, cart, orders, admin-orders
-
-  // Load products on component mount
-  useEffect(() => {
-    if (authLoading) return; // Wait for auth to load
-
-    const fetchFoods = async () => {
-      try {
-        setLoading(true);
-        const data = await api.getProducts();
-        if (data && data.products) {
-          const mappedData = data.products.map(item => ({ ...item, id: item._id }));
-          setFoods(mappedData);
-        } else if (Array.isArray(data)) {
-          // Fallback for API that returns array directly
-          const mappedData = data.map(item => ({ ...item, id: item._id }));
-          setFoods(mappedData);
-        }
-      } catch (error) {
-        console.error("Error loading foods:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFoods();
-  }, [authLoading]);
-
-  const sortedFoods = [...foods].sort((a, b) => {
-    if (sortType === "rating") return (b.rating || 0) - (a.rating || 0);
-    if (sortType === "price_asc") return a.price - b.price;
-    if (sortType === "price_desc") return b.price - a.price;
-    return 0;
-  });
-
-  const handleEditFood = (food) => {
-    setEditingFood(food);
-    setShowAddModal(true);
-  };
-
-  const handleDeleteFood = async (foodId) => {
-    if (!token) {
-      alert("You must be logged in to delete items");
-      return;
-    }
-
-    if (!window.confirm("Are you sure you want to delete this item?")) {
-      return;
-    }
-
-    try {
-      await api.deleteProduct(foodId, token);
-      setFoods(foods.filter(f => f._id !== foodId));
-      alert("Item deleted successfully");
-    } catch (error) {
-      alert("Error deleting item: " + error.message);
-    }
-  };
-
-  const handleCloseAddModal = () => {
-    setShowAddModal(false);
-    setEditingFood(null);
-  };
-
-  const handleProductUpdated = () => {
-    // Reload foods after edit
-    const fetchFoods = async () => {
-      try {
-        const data = await api.getProducts();
-        if (data && data.products) {
-          const mappedData = data.products.map(item => ({ ...item, id: item._id }));
-          setFoods(mappedData);
-        }
-      } catch (error) {
-        console.error("Error reloading foods:", error);
-      }
-    };
-    fetchFoods();
-    handleCloseAddModal();
-  };
-
-  const handleCloseModal = () => {
-    setSelected(null);
-  };
-
-  const handleLogout = () => {
-    logout();
-    setView("menu");
-  };
-
-  if (authLoading || loading) {
-    return (
-      <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            border: '3px solid var(--glass-border)', 
-            borderTop: '3px solid var(--primary)',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px'
-          }}></div>
-          <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) return <Login />;
-
   return (
-    <div className="container">
-      <header>
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-          onClick={() => setView('menu')}
-        >
-          <h2 style={{ fontSize: '1.5rem', background: 'linear-gradient(to right, #FF4757, #FF6B81)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Fine Dining
-          </h2>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+    <AuthProvider>
+      <CartProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="menu" element={<Menu />} />
+              <Route path="login" element={<Login />} />
 
-          {/* View Switchers */}
-          <button
-            onClick={() => setView('menu')}
-            style={{ background: view === 'menu' ? 'var(--primary)' : 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '5px 10px', borderRadius: '5px' }}
-          >
-            Menu
-          </button>
+              <Route path="cart" element={<CartPage />} />
 
-          {userRole === 'admin' && (
-            <button
-              onClick={() => setView('admin-orders')}
-              style={{ background: view === 'admin-orders' ? 'var(--primary)' : 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '5px 10px', borderRadius: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}
-            >
-              <ClipboardList size={16} /> Admin Orders
-            </button>
-          )}
+              <Route path="my-orders" element={
+                <PrivateRoute>
+                  <MyOrders />
+                </PrivateRoute>
+              } />
 
-          <button
-            onClick={() => setView('my-orders')}
-            style={{ background: view === 'my-orders' ? 'var(--primary)' : 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '5px 10px', borderRadius: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}
-          >
-            <List size={16} /> My Orders
-          </button>
-
-          <button
-            onClick={() => setView('cart')}
-            style={{ background: view === 'cart' ? 'var(--primary)' : 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '5px 10px', borderRadius: '5px', display: 'flex', alignItems: 'center', gap: '5px', position: 'relative' }}
-          >
-            <ShoppingCart size={16} />
-            {cart.length > 0 && (
-              <span style={{ position: 'absolute', top: -5, right: -5, background: 'red', borderRadius: '50%', width: '15px', height: '15px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>{cart.reduce((a, c) => a + c.qty, 0)}</span>
-            )}
-          </button>
-
-          {userRole === 'admin' && view === 'menu' && <button
-            onClick={() => {
-              setEditingFood(null);
-              setShowAddModal(true);
-            }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
-              background: 'var(--primary)', color: 'white',
-              padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '500', fontSize: '0.9rem'
-            }}
-          >
-            <PlusCircle size={16} /> Add
-          </button>}
-
-          {view === 'menu' && (
-            <select
-              value={sortType}
-              onChange={(e) => setSortType(e.target.value)}
-              style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'var(--bg-card)', color: 'var(--text-main)' }}
-            >
-              <option value="rating">Top Rated</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-            </select>
-          )}
-
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--glass)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <User size={16} />
-            </div>
-            <span title={user?.email}>{user?.name || 'User'}</span>
-          </span>
-          <button onClick={handleLogout} style={{ background: 'var(--bg-card)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px', borderRadius: '6px', color: 'white' }}>
-            <LogOut size={14} />
-          </button>
-        </div>
-      </header>
-
-      <div className="grid">
-        {view === 'menu' && (
-          <>
-            {foods.length === 0 ? (
-              <div style={{ textAlign: 'center', gridColumn: '1/-1', padding: '40px' }}>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>No items yet. Start adding to the menu!</p>
-                {userRole === 'admin' && <button onClick={() => setShowAddModal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'var(--primary)', color: 'white', padding: '12px 24px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
-                  <PlusCircle size={20} /> Add First Item
-                </button>}
-              </div>
-            ) : (
-              sortedFoods.map(f => (
-                <FoodCard
-                  key={f._id}
-                  food={f}
-                  onClick={() => setSelected(f)}
-                  onEdit={handleEditFood}
-                  onDelete={handleDeleteFood}
-                  isAdmin={userRole === 'admin'}
-                />
-              ))
-            )}
-          </>
-        )}
-
-        {view === 'cart' && (
-          <div style={{ gridColumn: '1/-1' }}>
-            <Cart cart={cart} onRemove={removeFromCart} onClear={clearCart} />
-          </div>
-        )}
-
-        {view === 'my-orders' && (
-          <div style={{ gridColumn: '1/-1' }}>
-            <MyOrders />
-          </div>
-        )}
-
-        {view === 'admin-orders' && userRole === 'admin' && (
-          <div style={{ gridColumn: '1/-1' }}>
-            <OrderList />
-          </div>
-        )}
-      </div>
-
-      {selected && (
-        <FoodModal
-          food={selected}
-          onClose={handleCloseModal}
-          onAddToCart={addToCart}
-          isAdmin={userRole === 'admin'}
-        />
-      )}
-
-      {showAddModal && (
-        <AddFoodModal
-          product={editingFood}
-          onClose={handleCloseAddModal}
-          onProductUpdated={handleProductUpdated}
-        />
-      )}
-
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
+              <Route path="admin/orders" element={
+                <AdminRoute>
+                  <OrderList />
+                </AdminRoute>
+              } />
+            </Route>
+          </Routes>
+        </Router>
+      </CartProvider>
+    </AuthProvider>
   );
 }
-
