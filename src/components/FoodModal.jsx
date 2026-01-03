@@ -11,6 +11,9 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
     const [reviewImage, setReviewImage] = useState("");
     const [isAdded, setIsAdded] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [notification, setNotification] = useState(null); // { type: 'success'|'error', message }
+    const [localReviews, setLocalReviews] = useState(food.reviews || []);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // reviewId pending
 
     const uploadFileHandler = async (e) => {
         const file = e.target.files[0];
@@ -25,7 +28,7 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
         } catch (error) {
             console.error(error);
             setUploading(false);
-            alert("Image upload failed");
+            setNotification({ type: 'error', message: 'Image upload failed' });
         }
     };
 
@@ -67,8 +70,7 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
         try {
             const userData = JSON.parse(localStorage.getItem('user') || '{}');
             const token = localStorage.getItem('token');
-
-            await api.addReview(food._id, {
+            const created = await api.addReview(food._id, {
                 rating,
                 comment,
                 name: userData.name || 'Anonymous',
@@ -76,27 +78,34 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
                 image: reviewImage
             }, token || "");
 
+            // Update local reviews without reloading
+            setLocalReviews(prev => [created, ...prev]);
             setComment("");
             setRating(5);
             setReviewImage("");
-            alert("Review submitted!");
-            window.location.reload();
+            setNotification({ type: 'success', message: 'Review submitted!' });
         } catch (e) {
-            alert("Error submitting review: " + e.message);
+            setNotification({ type: 'error', message: 'Error submitting review: ' + e.message });
         } finally {
             setSubmitting(false);
         }
     };
 
-    const handleDeleteReview = async (reviewId) => {
-        if (!window.confirm("Delete this review?")) return;
+    const handleDeleteReview = (reviewId) => {
+        // show in-page confirm modal
+        setShowDeleteConfirm(reviewId);
+    };
+
+    const confirmDeleteReview = async (reviewId) => {
         try {
             const token = localStorage.getItem('token');
             await api.deleteReview(food._id, reviewId, token);
-            alert("Review deleted");
-            window.location.reload();
+            setLocalReviews(prev => prev.filter(r => r._id !== reviewId));
+            setNotification({ type: 'success', message: 'Review deleted' });
         } catch (e) {
-            alert("Error deleting review: " + e.message);
+            setNotification({ type: 'error', message: 'Error deleting review: ' + e.message });
+        } finally {
+            setShowDeleteConfirm(null);
         }
     };
 
@@ -305,11 +314,11 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
                                 Reviews <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 'normal' }}>({food.reviews?.length || 0})</span>
                             </h3>
 
-                            {(!food.reviews || food.reviews.length === 0) ? (
+                            {(!localReviews || localReviews.length === 0) ? (
                                 <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>No reviews yet. Be the first!</p>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                    {(food.reviews || []).slice().reverse().map((r, i) => (
+                                    {(localReviews || []).slice().reverse().map((r, i) => (
                                         <motion.div
                                             key={r._id || i}
                                             initial={{ opacity: 0, x: -10 }}
@@ -356,6 +365,28 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
                                 </div>
                             )}
                         </div>
+                            {/* Confirm Delete Modal */}
+                            {showDeleteConfirm && (
+                                <div className="modal-overlay" style={{ zIndex: 1200 }}>
+                                    <div className="modal-content" style={{ maxWidth: '420px', padding: '18px' }}>
+                                        <h3 style={{ marginTop: 0 }}>Confirm Delete</h3>
+                                        <p>Are you sure you want to delete this review?</p>
+                                        <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                                            <button onClick={() => setShowDeleteConfirm(null)} style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'transparent', cursor: 'pointer' }}>Cancel</button>
+                                            <button onClick={() => confirmDeleteReview(showDeleteConfirm)} style={{ flex: 1, padding: '10px', borderRadius: '6px', border: 'none', background: 'red', color: 'white', cursor: 'pointer' }}>Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Notification Toast */}
+                            {notification && (
+                                <div style={{ position: 'fixed', right: 20, bottom: 20, zIndex: 1300 }}>
+                                    <div style={{ background: notification.type === 'error' ? '#fdd' : '#e6ffec', color: notification.type === 'error' ? '#900' : '#064', padding: '12px 16px', borderRadius: '8px', boxShadow: '0 6px 20px rgba(0,0,0,0.2)' }}>
+                                        {notification.message}
+                                    </div>
+                                </div>
+                            )}
                     </div>
                 </motion.div>
             </motion.div>

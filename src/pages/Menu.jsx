@@ -12,11 +12,13 @@ export default function Menu() {
     const { addToCart } = useCart();
 
     const [foods, setFoods] = useState([]);
+    const [notification, setNotification] = useState(null);
     const [selected, setSelected] = useState(null);
     const [editingFood, setEditingFood] = useState(null);
     const [showAddModal, setShowAddModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [sortType, setSortType] = useState("rating");
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
     useEffect(() => {
         fetchFoods();
@@ -45,15 +47,20 @@ export default function Menu() {
         return 0;
     });
 
-    const handleDeleteFood = async (foodId) => {
+    const handleDeleteFood = (foodId) => {
         if (!token) return;
-        if (confirm("Are you sure?")) {
-            try {
-                await api.deleteProduct(foodId, token);
-                setFoods(foods.filter(f => f._id !== foodId));
-            } catch (e) {
-                alert(e.message);
-            }
+        setShowDeleteConfirm(foodId);
+    };
+
+    const confirmDeleteFood = async (foodId) => {
+        try {
+            await api.deleteProduct(foodId, token);
+            setFoods(prev => prev.filter(f => f._id !== foodId));
+            setNotification({ type: 'success', message: 'Item deleted' });
+        } catch (e) {
+            setNotification({ type: 'error', message: e.message });
+        } finally {
+            setShowDeleteConfirm(null);
         }
     };
 
@@ -112,6 +119,27 @@ export default function Menu() {
                     onAddToCart={addToCart}
                     isAdmin={userRole === 'admin'}
                 />
+            )}
+
+            {showDeleteConfirm && (
+                <div className="modal-overlay" style={{ zIndex: 1200 }}>
+                    <div className="modal-content" style={{ maxWidth: '420px', padding: '18px' }}>
+                        <h3 style={{ marginTop: 0 }}>Confirm Delete</h3>
+                        <p>Are you sure you want to delete this item?</p>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                            <button onClick={() => setShowDeleteConfirm(null)} style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'transparent', cursor: 'pointer' }}>Cancel</button>
+                            <button onClick={() => confirmDeleteFood(showDeleteConfirm)} style={{ flex: 1, padding: '10px', borderRadius: '6px', border: 'none', background: 'red', color: 'white', cursor: 'pointer' }}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {notification && (
+                <div style={{ position: 'fixed', right: 20, bottom: 20, zIndex: 1300 }}>
+                    <div style={{ background: notification.type === 'error' ? '#fdd' : '#e6ffec', color: notification.type === 'error' ? '#900' : '#064', padding: '12px 16px', borderRadius: '8px', boxShadow: '0 6px 20px rgba(0,0,0,0.2)' }}>
+                        {notification.message}
+                    </div>
+                </div>
             )}
 
             {showAddModal && (

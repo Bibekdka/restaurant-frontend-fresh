@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../lib/api';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 export default function Cart({ cart, onRemove, onClear }) {
@@ -40,6 +41,11 @@ export default function Cart({ cart, onRemove, onClear }) {
         return true;
     };
 
+    const navigate = useNavigate();
+
+    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [orderId, setOrderId] = useState(null);
+
     const placeOrder = async () => {
         setError("");
 
@@ -71,10 +77,11 @@ export default function Cart({ cart, onRemove, onClear }) {
                 }
             };
 
-            await api.createOrder(orderData, token);
+            const created = await api.createOrder(orderData, token);
             setError("");
             onClear();
-            alert('Order Placed Successfully! Thank you for your purchase.');
+            setOrderId(created && created._id ? created._id : null);
+            setShowConfirmation(true);
         } catch (error) {
             setError('Error placing order: ' + error.message);
         } finally {

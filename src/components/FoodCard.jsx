@@ -11,9 +11,7 @@ export default function FoodCard({ food, onClick, onEdit, onDelete, isAdmin = fa
   const handleDeleteClick = (e) => {
     e.stopPropagation();
     if (onDelete && isAdmin) {
-      if (window.confirm(`Delete "${food.name}"?`)) {
-        onDelete(food._id);
-      }
+      onDelete(food._id);
     }
   };
 

@@ -16,7 +16,8 @@ export default function MyOrders() {
                 const token = localStorage.getItem('token');
                 if (token) {
                     const data = await api.getMyOrders(token);
-                    setOrders(data);
+                    // api.getMyOrders returns an object with `orders` key — normalize to array
+                    setOrders(data.orders || data);
                 }
             } catch (error) {
                 console.error("Error fetching orders:", error);

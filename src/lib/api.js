@@ -2,6 +2,38 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 console.log('Using API URL:', API_URL);
 
+const CACHE_TTLS = {
+    products: 1000 * 60 * 5, // 5 minutes
+    myOrders: 1000 * 60 * 1, // 1 minute
+};
+
+const readCache = (key, ttl) => {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (Date.now() - parsed.ts > ttl) {
+            localStorage.removeItem(key);
+            return null;
+        }
+        return parsed.value;
+    } catch (e) {
+        return null;
+    }
+};
+
+const writeCache = (key, value) => {
+    try {
+        localStorage.setItem(key, JSON.stringify({ ts: Date.now(), value }));
+    } catch (e) {
+        // ignore storage errors
+    }
+};
+
+const clearCache = (key) => {
+    try { localStorage.removeItem(key); } catch (e) {}
+};
+
 export const api = {
     // Auth
     register: async (userData) => {
@@ -26,11 +58,16 @@ export const api = {
 
     // Products
     getProducts: async (page = 1, limit = 20) => {
+        const cacheKey = `cache_products_page_${page}_limit_${limit}`;
+        const cached = readCache(cacheKey, CACHE_TTLS.products);
+        if (cached) return cached;
+
         const response = await fetch(`${API_URL}/api/products?page=${page}&limit=${limit}`);
         if (!response.ok) throw new Error('Failed to fetch products');
         const data = await response.json();
-        // Return paginated data structure, but also support legacy code expecting array
-        return data.products ? data : { products: data };
+        const result = data.products ? data : { products: data };
+        writeCache(cacheKey, result);
+        return result;
     },
 
     getProductById: async (productId) => {
@@ -49,6 +86,8 @@ export const api = {
             body: JSON.stringify(productData),
         });
         if (!response.ok) throw new Error((await response.json()).message || 'Failed to create product');
+        // invalidate product cache
+        clearCache('cache_products_page_1_limit_20');
         return response.json();
     },
 
@@ -63,6 +102,7 @@ export const api = {
             body: JSON.stringify(updates),
         });
         if (!response.ok) throw new Error((await response.json()).message || 'Failed to update product');
+        clearCache('cache_products_page_1_limit_20');
         return response.json();
     },
 
@@ -89,6 +129,7 @@ export const api = {
             },
         });
         if (!response.ok) throw new Error((await response.json()).message || 'Failed to delete product');
+        clearCache('cache_products_page_1_limit_20');
         return response.json();
     },
 
@@ -177,6 +218,10 @@ export const api = {
     },
 
     getMyOrders: async (token, page = 1, limit = 20) => {
+        const cacheKey = `cache_myorders_${token}_page_${page}_limit_${limit}`;
+        const cached = readCache(cacheKey, CACHE_TTLS.myOrders);
+        if (cached) return cached;
+
         const response = await fetch(`${API_URL}/api/orders/myorders?page=${page}&limit=${limit}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -184,7 +229,9 @@ export const api = {
         });
         if (!response.ok) throw new Error((await response.json()).message || 'Failed to fetch my orders');
         const data = await response.json();
-        return data.orders ? data : { orders: data };
+        const result = data.orders ? data : { orders: data };
+        writeCache(cacheKey, result);
+        return result;
     },
 
     getOrderById: async (orderId, token) => {
