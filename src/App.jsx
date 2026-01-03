@@ -6,7 +6,7 @@ import Layout from "./layouts/Layout";
 // Pages
 import Home from "./pages/Home";
 import Menu from "./pages/Menu";
-import Login from "./pages/Login";
+import Login from "./components/Login";
 // Create placeholder components for now if they don't exist, or reuse existing
 import Cart from "./components/Cart";
 import MyOrders from "./components/MyOrders";
