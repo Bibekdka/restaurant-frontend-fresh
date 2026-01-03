@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Star, Send, ChevronLeft, ChevronRight, ShoppingCart, Trash2 } from "lucide-react";
+import { X, Star, Send, ChevronLeft, ChevronRight, ShoppingCart, Trash2, CheckCircle } from "lucide-react";
 import { api } from "../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -8,6 +8,7 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
     const [comment, setComment] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [isAdded, setIsAdded] = useState(false);
 
     // Support both old image field and new images array
     const images = food.images && food.images.length > 0
@@ -24,6 +25,14 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
 
     const handleNextImage = () => {
         setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    };
+
+    const handleAddToCartClick = () => {
+        if (onAddToCart) {
+            onAddToCart(food);
+            setIsAdded(true);
+            setTimeout(() => setIsAdded(false), 2000);
+        }
     };
 
     const submitReview = async () => {
@@ -74,7 +83,8 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
                 onClick={onClose}
                 style={{
                     position: 'fixed', inset: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+                    backdropFilter: 'blur(4px)', background: 'rgba(0,0,0,0.6)'
                 }}
             >
                 <motion.div
@@ -86,15 +96,20 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
                     style={{
                         position: 'relative', width: '90%', maxWidth: '600px',
                         maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px', padding: '0',
-                        background: 'var(--bg-dark)', border: '1px solid var(--glass-border)'
+                        background: 'var(--bg-dark)', border: '1px solid var(--glass-border)',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                        margin: 'auto' /* Ensure centering behavior if flex fails */
                     }}
                 >
                     <button onClick={onClose} style={{
                         position: 'absolute', top: 15, right: 15, zIndex: 10,
-                        background: 'rgba(0,0,0,0.5)', borderRadius: '50%', width: '32px', height: '32px',
-                        padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none'
-                    }}>
-                        <X size={18} />
+                        background: 'rgba(255,255,255,0.2)', borderRadius: '50%', width: '36px', height: '36px',
+                        padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)',
+                        cursor: 'pointer', transition: 'background 0.2s', color: 'white'
+                    }} onMouseOver={e => e.currentTarget.style.background = 'rgba(255,0,0,0.5)'}
+                        onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                    >
+                        <X size={20} />
                     </button>
 
                     {/* Image Gallery */}
@@ -148,14 +163,35 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
                         {/* Actions */}
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
                             <button
-                                onClick={() => onAddToCart && onAddToCart(food)}
+                                onClick={onClose}
                                 style={{
                                     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                    background: 'var(--primary)', color: 'white', border: 'none',
+                                    background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--glass-border)',
                                     padding: '12px', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer'
                                 }}
                             >
-                                <ShoppingCart size={20} /> Add to Cart
+                                <X size={20} /> Close
+                            </button>
+                            <button
+                                onClick={handleAddToCartClick}
+                                disabled={isAdded}
+                                style={{
+                                    flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    background: isAdded ? '#4CAF50' : 'var(--primary)',
+                                    color: 'white', border: 'none',
+                                    padding: '12px', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer',
+                                    transition: 'background 0.3s'
+                                }}
+                            >
+                                {isAdded ? (
+                                    <>
+                                        <CheckCircle size={20} /> Added to Cart!
+                                    </>
+                                ) : (
+                                    <>
+                                        <ShoppingCart size={20} /> Add to Cart
+                                    </>
+                                )}
                             </button>
                         </div>
 
