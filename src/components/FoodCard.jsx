@@ -18,17 +18,16 @@ export default function FoodCard({ food, onClick, onEdit, onDelete, isAdmin = fa
   };
 
   return (
-    <motion.div 
-      layoutId={`card-${food._id}`}
-      className="food-card" 
+    <motion.div
+      className="food-card"
       onClick={onClick}
       whileHover={{ y: -5 }}
       style={{ position: "relative" }}
     >
       <div className="food-image-wrapper">
-        <img 
-          src={food.image || (food.images && food.images[0]?.url) || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=60'} 
-          alt={food.name} 
+        <img
+          src={food.image || (food.images && food.images[0]?.url) || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=60'}
+          alt={food.name}
           className="food-image"
         />
       </div>
@@ -37,7 +36,7 @@ export default function FoodCard({ food, onClick, onEdit, onDelete, isAdmin = fa
           <h3 style={{ margin: 0, fontSize: "1.2rem", maxWidth: "70%" }}>{food.name}</h3>
           <p className="food-price">${food.price}</p>
         </div>
-        
+
         <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "12px", color: "var(--text-muted)" }}>
           <Star size={16} fill={food.rating ? "#FFD700" : "none"} color={food.rating ? "#FFD700" : "#A4B0BE"} />
           <span style={{ fontWeight: 600, color: "var(--text-main)" }}>

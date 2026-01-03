@@ -8,7 +8,32 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
     const [comment, setComment] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [reviewImage, setReviewImage] = useState("");
     const [isAdded, setIsAdded] = useState(false);
+    const [uploading, setUploading] = useState(false);
+
+    const uploadFileHandler = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+
+        try {
+            const data = await api.uploadImage(file);
+            setReviewImage(data.image || data.url);
+            setUploading(false);
+        } catch (error) {
+            console.error(error);
+            setUploading(false);
+            alert("Image upload failed");
+        }
+    };
+
+    // ... inside submitReview ...
+    // update submitReview to use reviewImage
+
+    // ... in JSX ...
+    // replace submit button area
 
     // Support both old image field and new images array
     const images = food.images && food.images.length > 0
@@ -47,11 +72,13 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
                 rating,
                 comment,
                 name: userData.name || 'Anonymous',
-                user: userData._id || null
+                user: userData._id || null,
+                image: reviewImage
             }, token || "");
 
             setComment("");
             setRating(5);
+            setReviewImage("");
             alert("Review submitted!");
             window.location.reload();
         } catch (e) {
@@ -219,28 +246,56 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
                                     />
                                 ))}
                             </div>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <textarea
-                                    placeholder="Share your experience..."
-                                    value={comment}
-                                    onChange={e => setComment(e.target.value)}
-                                    style={{
-                                        flex: 1, padding: '12px', minHeight: '60px',
-                                        background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)',
-                                        borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical', fontFamily: 'inherit'
-                                    }}
-                                />
-                                <button
-                                    onClick={submitReview}
-                                    disabled={submitting || !comment.trim()}
-                                    style={{
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        width: '50px', height: 'auto', borderRadius: '8px', padding: 0,
-                                        background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer'
-                                    }}
-                                >
-                                    {submitting ? <div className="spinner">...</div> : <Send size={20} />}
-                                </button>
+                            <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <textarea
+                                        placeholder="Share your experience..."
+                                        value={comment}
+                                        onChange={e => setComment(e.target.value)}
+                                        style={{
+                                            flex: 1, padding: '12px', minHeight: '60px',
+                                            background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)',
+                                            borderRadius: '8px', color: 'var(--text-main)', resize: 'vertical', fontFamily: 'inherit'
+                                        }}
+                                    />
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <label style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            width: '50px', height: '40px', borderRadius: '8px',
+                                            background: 'var(--glass)', border: '1px solid var(--glass-border)', cursor: 'pointer'
+                                        }}>
+                                            <input type="file" onChange={uploadFileHandler} style={{ display: 'none' }} />
+                                            <span style={{ fontSize: '1.2rem' }}>📷</span>
+                                        </label>
+                                        <button
+                                            onClick={submitReview}
+                                            disabled={submitting || !comment.trim()}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                width: '50px', height: '100%', borderRadius: '8px', padding: 0,
+                                                background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer', flex: 1
+                                            }}
+                                        >
+                                            {submitting ? <div className="spinner">...</div> : <Send size={20} />}
+                                        </button>
+                                    </div>
+                                </div>
+                                {uploading && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Uploading image...</div>}
+                                {reviewImage && (
+                                    <div style={{ position: 'relative', width: '60px', height: '60px' }}>
+                                        <img src={reviewImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+                                        <button
+                                            onClick={() => setReviewImage("")}
+                                            style={{
+                                                position: 'absolute', top: -5, right: -5, background: 'red', color: 'white',
+                                                borderRadius: '50%', width: '16px', height: '16px', border: 'none',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '10px'
+                                            }}
+                                        >
+                                            X
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -290,6 +345,11 @@ export default function FoodModal({ food, onClose, onAddToCart, isAdmin }) {
                                                     )}
                                                 </div>
                                             </div>
+                                            {r.image && (
+                                                <div style={{ marginTop: '10px' }}>
+                                                    <img src={r.image} alt="Review attachment" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px' }} />
+                                                </div>
+                                            )}
                                             <p style={{ margin: 0, lineHeight: '1.5', color: '#ddd' }}>{r.comment}</p>
                                         </motion.div>
                                     ))}
