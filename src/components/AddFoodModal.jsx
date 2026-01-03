@@ -9,11 +9,11 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
     const [category, setCategory] = useState(product?.category || "Main");
     const [description, setDescription] = useState(product?.description || "");
     const [images, setImages] = useState(product?.images || []);
-    const [file, setFile] = useState(null);
-    const [preview, setPreview] = useState(null);
+    const [selectedFiles, setSelectedFiles] = useState([]);
+    const [previews, setPreviews] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const fileInputRef = useRef(null); // FIX: Define the ref
+    const fileInputRef = useRef(null);
 
     const isEditMode = !!product;
 
@@ -43,56 +43,80 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
     };
 
     const handleFileChange = (e) => {
-        const selectedFile = e.target.files[0];
-        if (selectedFile) {
-            // Validate file size (5MB)
-            if (selectedFile.size > 5 * 1024 * 1024) {
-                setError("File size must be less than 5MB");
-                return;
+        const files = Array.from(e.target.files);
+        if (files.length > 0) {
+            const validFiles = [];
+            const newPreviews = [];
+            let hasError = false;
+
+            files.forEach(file => {
+                // Validate file size (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    setError(`File "${file.name}" is too large (max 5MB)`);
+                    hasError = true;
+                    return;
+                }
+                // Validate file type
+                if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) {
+                    setError(`File "${file.name}" has invalid format (JPG, PNG, WEBP only)`);
+                    hasError = true;
+                    return;
+                }
+                validFiles.push(file);
+                newPreviews.push(URL.createObjectURL(file));
+            });
+
+            if (!hasError) {
+                setError(null);
+                setSelectedFiles(prev => [...prev, ...validFiles]);
+                setPreviews(prev => [...prev, ...newPreviews]);
             }
-            // Validate file type
-            if (!['image/jpeg', 'image/png', 'image/jpg'].includes(selectedFile.type)) {
-                setError("Only JPG and PNG files are allowed");
-                return;
-            }
-            setError(null);
-            setFile(selectedFile);
-            setPreview(URL.createObjectURL(selectedFile));
         }
     };
 
-    const handleAddImage = async () => {
-        if (!file && !preview) {
-            setError("Please select an image first");
+    const handleRemovePreview = (index) => {
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+        // Revoke URL to prevent memory leaks
+        URL.revokeObjectURL(previews[index]);
+        setPreviews(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleAddImages = async () => {
+        if (selectedFiles.length === 0) {
+            setError("Please select at least one image first");
             return;
         }
 
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            let imageUrl = preview;
+            if (!token) throw new Error("Authentication required");
 
-            if (file) {
-                const uploadData = await api.uploadImage(file);
-                imageUrl = uploadData.url;
-            }
+            // Upload all selected files in a single batch
+            const uploadData = await api.uploadImages(selectedFiles);
+            const newImageUrls = uploadData.images; // Array of {url, public_id}
 
             if (isEditMode && product._id) {
-                // Add image to existing product
-                await api.addImageToProduct(product._id, imageUrl, token);
+                // Add images to existing product one by one (or update implementation for batch)
+                // For simplicity with existing API, iterate:
+                for (const img of newImageUrls) {
+                    await api.addImageToProduct(product._id, img.url, token);
+                }
                 // Refresh product data
                 const updated = await api.getProductById(product._id);
                 setImages(updated.images || []);
             } else {
                 // Add to local images array for new product
-                setImages([...images, { url: imageUrl }]);
+                setImages([...images, ...newImageUrls]);
             }
 
-            setFile(null);
-            setPreview(null);
+            // Clean up
+            previews.forEach(url => URL.revokeObjectURL(url));
+            setSelectedFiles([]);
+            setPreviews([]);
             setError(null);
         } catch (error) {
-            setError("Failed to add image: " + error.message);
+            setError("Failed to add images: " + (error.response?.data?.message || error.message));
         } finally {
             setLoading(false);
         }
@@ -164,7 +188,7 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
 
             onClose();
         } catch (error) {
-            const message = error.response?.status === 403 
+            const message = error.response?.status === 403
                 ? "Admin access required to add/edit products"
                 : error.response?.data?.message || error.message;
             setError("Error: " + message);
@@ -269,33 +293,57 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
                         <div
                             onClick={() => fileInputRef.current?.click()}
                             style={{
-                                width: "100%", height: "150px", border: "2px dashed var(--glass-border)",
+                                width: "100%", minHeight: "150px", border: "2px dashed var(--glass-border)",
                                 borderRadius: "12px", display: "flex", flexDirection: "column",
                                 alignItems: "center", justifyContent: "center", cursor: "pointer",
-                                overflow: "hidden", position: "relative", background: "rgba(0,0,0,0.2)"
+                                overflow: "hidden", position: "relative", background: "rgba(0,0,0,0.2)",
+                                padding: "10px"
                             }}
                         >
-                            {preview ? (
-                                <img src={preview} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            {previews.length > 0 ? (
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px w-100%", width: "100%" }}>
+                                    {previews.map((url, idx) => (
+                                        <div key={idx} style={{ position: "relative", aspectRatio: "1/1" }}>
+                                            <img src={url} alt={`Preview ${idx}`} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "6px" }} />
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); handleRemovePreview(idx); }}
+                                                style={{
+                                                    position: "absolute", top: "-5px", right: "-5px",
+                                                    background: "red", color: "white", border: "none",
+                                                    borderRadius: "50%", width: "20px", height: "20px",
+                                                    fontSize: "12px", display: "flex", alignItems: "center",
+                                                    justifyContent: "center", cursor: "pointer"
+                                                }}
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.1)", borderRadius: "6px", aspectRatio: "1/1" }}>
+                                        <Plus size={24} color="var(--text-muted)" />
+                                    </div>
+                                </div>
                             ) : (
                                 <>
                                     <UploadCloud size={40} color="var(--text-muted)" />
-                                    <p style={{ color: "var(--text-muted)", marginTop: "10px", fontSize: "0.9rem" }}>Click to upload photo</p>
+                                    <p style={{ color: "var(--text-muted)", marginTop: "10px", fontSize: "0.9rem" }}>Click to upload multiple photos</p>
                                 </>
                             )}
                         </div>
                         <input
                             type="file"
                             accept="image/*"
+                            multiple
                             hidden
                             ref={fileInputRef}
                             onChange={handleFileChange}
                         />
 
-                        {preview && (
+                        {previews.length > 0 && (
                             <button
                                 type="button"
-                                onClick={handleAddImage}
+                                onClick={handleAddImages}
                                 disabled={loading}
                                 style={{
                                     display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
@@ -303,7 +351,7 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
                                     border: "none", fontWeight: "bold", fontSize: "0.9rem", cursor: "pointer"
                                 }}
                             >
-                                <Plus size={16} /> Add Photo
+                                <Plus size={16} /> Add {selectedFiles.length} Photos
                             </button>
                         )}
 

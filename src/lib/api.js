@@ -31,7 +31,7 @@ const writeCache = (key, value) => {
 };
 
 const clearCache = (key) => {
-    try { localStorage.removeItem(key); } catch (e) {}
+    try { localStorage.removeItem(key); } catch (e) { }
 };
 
 export const api = {
@@ -149,6 +149,28 @@ export const api = {
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.message || 'Image upload failed');
+        }
+        return response.json();
+    },
+
+    uploadImages: async (files) => {
+        const formData = new FormData();
+        files.forEach(file => {
+            formData.append('images', file);
+        });
+
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/upload/multiple`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Multiple image upload failed');
         }
         return response.json();
     },
