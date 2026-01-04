@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -12,6 +12,20 @@ export default function Login() {
     const [error, setError] = useState("");
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Parse query parameters
+    const query = new URLSearchParams(location.search);
+    const redirectPath = query.get('redirect') || '/menu';
+    const isRegister = query.get('register') === 'true';
+
+    useEffect(() => {
+        if (isRegister) {
+            setSignup(true);
+        } else {
+            setSignup(false);
+        }
+    }, [isRegister]);
 
     // Validate email format
     const validateEmail = (email) => {
@@ -51,11 +65,11 @@ export default function Login() {
                 const name = email.split('@')[0]; // Use email prefix as default name
                 const data = await api.register({ name, email, password });
                 login(data, data.token);
-                navigate('/menu');
+                navigate(redirectPath);
             } else {
                 const data = await api.login({ email, password });
                 login(data, data.token);
-                navigate('/menu');
+                navigate(redirectPath);
             }
         } catch (err) {
             setError(err.message);

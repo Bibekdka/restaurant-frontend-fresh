@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { api } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 export default function Cart({ cart, onRemove, onClear }) {
+    const { user } = useAuth();
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    
+
     // Form state
     const [address, setAddress] = useState("");
     const [city, setCity] = useState("");
@@ -113,8 +115,8 @@ export default function Cart({ cart, onRemove, onClear }) {
                 <>
                     <motion.div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
                         {cart.map((item, index) => (
-                            <motion.div 
-                                key={index} 
+                            <motion.div
+                                key={index}
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--glass)', padding: '15px', borderRadius: '8px', alignItems: 'center' }}
@@ -125,8 +127,8 @@ export default function Cart({ cart, onRemove, onClear }) {
                                 </div>
                                 <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
                                     <span style={{ fontWeight: '600' }}>${(item.price * item.qty).toFixed(2)}</span>
-                                    <button 
-                                        onClick={() => onRemove(item.product)} 
+                                    <button
+                                        onClick={() => onRemove(item.product)}
                                         style={{ background: 'red', color: 'white', border: 'none', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '0.9rem' }}
                                     >
                                         Remove
@@ -157,14 +159,20 @@ export default function Cart({ cart, onRemove, onClear }) {
 
                     {!showAddressForm ? (
                         <button
-                            onClick={() => setShowAddressForm(true)}
+                            onClick={() => {
+                                if (!user) {
+                                    navigate('/login?redirect=cart');
+                                } else {
+                                    setShowAddressForm(true);
+                                }
+                            }}
                             style={{
                                 width: '100%', padding: '15px', background: 'var(--primary)',
                                 color: 'white', border: 'none', borderRadius: '8px',
                                 fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer'
                             }}
                         >
-                            Proceed to Checkout
+                            {user ? "Proceed to Checkout" : "Login to Checkout"}
                         </button>
                     ) : (
                         <motion.div
@@ -272,7 +280,8 @@ export default function Cart({ cart, onRemove, onClear }) {
                         </motion.div>
                     )}
                 </>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 }

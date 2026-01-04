@@ -97,11 +97,9 @@ export default function AddFoodModal({ onClose, product = null, onProductUpdated
             const newImageUrls = uploadData.images; // Array of {url, public_id}
 
             if (isEditMode && product._id) {
-                // Add images to existing product one by one (or update implementation for batch)
-                // For simplicity with existing API, iterate:
-                for (const img of newImageUrls) {
-                    await api.addImageToProduct(product._id, img.url, token);
-                }
+                // Add images to existing product using bulk API
+                await api.addMultipleImagesToProduct(product._id, newImageUrls, token);
+
                 // Refresh product data
                 const updated = await api.getProductById(product._id);
                 setImages(updated.images || []);

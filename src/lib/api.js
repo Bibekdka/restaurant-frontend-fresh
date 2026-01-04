@@ -175,7 +175,20 @@ export const api = {
         return response.json();
     },
 
-    // Add image to product
+    // Add multiple images to product
+    addMultipleImagesToProduct: async (productId, images, token) => {
+        const response = await fetch(`${API_URL}/api/products/${productId}/images/bulk`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ images }),
+        });
+        if (!response.ok) throw new Error((await response.json()).message || 'Failed to add images');
+        return response.json();
+    },
+
     addImageToProduct: async (productId, imageUrl, token) => {
         const response = await fetch(`${API_URL}/api/products/${productId}/images`, {
             method: 'POST',
