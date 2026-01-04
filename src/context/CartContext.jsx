@@ -3,39 +3,57 @@ import { createContext, useContext, useState } from 'react';
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-    const [cart, setCart] = useState([]);
+    // Initialize cart from localStorage
+    const [cart, setCart] = useState(() => {
+        try {
+            const storedCart = localStorage.getItem('cart');
+            return storedCart ? JSON.parse(storedCart) : [];
+        } catch (error) {
+            console.error('Failed to load cart from storage', error);
+            return [];
+        }
+    });
+
+    // Helper to update both state and localStorage
+    const updateCart = (newCart) => {
+        setCart(newCart);
+        localStorage.setItem('cart', JSON.stringify(newCart));
+    };
 
     const addToCart = (food, qty = 1) => {
-        setCart((prev) => {
-            const existItem = prev.find(x => x.product === food._id);
-            if (existItem) {
-                return prev.map(x =>
-                    x.product === food._id ? { ...existItem, qty: existItem.qty + qty } : x
-                );
-            } else {
-                return [...prev, { ...food, product: food._id, qty }];
-            }
-        });
+        const itemQty = Number(qty);
+        let newCart;
+        const existItem = cart.find(x => x.product === food._id);
+
+        if (existItem) {
+            newCart = cart.map(x =>
+                x.product === food._id ? { ...existItem, qty: existItem.qty + itemQty } : x
+            );
+        } else {
+            newCart = [...cart, { ...food, product: food._id, qty: itemQty }];
+        }
+        updateCart(newCart);
     };
 
     const removeFromCart = (productId) => {
-        setCart((prev) => prev.filter(x => x.product !== productId));
+        const newCart = cart.filter(x => x.product !== productId);
+        updateCart(newCart);
     };
 
     const updateQuantity = (productId, qty) => {
-        if (qty <= 0) {
+        const itemQty = Number(qty);
+        if (itemQty <= 0) {
             removeFromCart(productId);
         } else {
-            setCart((prev) =>
-                prev.map(x =>
-                    x.product === productId ? { ...x, qty } : x
-                )
+            const newCart = cart.map(x =>
+                x.product === productId ? { ...x, qty: itemQty } : x
             );
+            updateCart(newCart);
         }
     };
 
     const clearCart = () => {
-        setCart([]);
+        updateCart([]);
     };
 
     return (
