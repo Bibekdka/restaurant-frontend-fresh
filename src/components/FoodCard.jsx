@@ -20,13 +20,17 @@ export default function FoodCard({ food, onClick, onEdit, onDelete, isAdmin = fa
       className="food-card"
       onClick={onClick}
       whileHover={{ y: -5 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       style={{ position: "relative" }}
     >
       <div className="food-image-wrapper">
         <img
-          src={food.image || (food.images && food.images[0]?.url) || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=60'}
+          src={food.image || (food.images && food.images[0]?.url) || 'https://via.placeholder.com/500x500?text=No+Image'}
           alt={food.name}
+          loading="lazy"
           className="food-image"
+          onError={(e) => { e.target.src = 'https://via.placeholder.com/500x500?text=No+Image'; }}
         />
       </div>
       <div className="food-info">
