@@ -4,6 +4,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 console.log('Using API URL:', API_URL);
 
+const CACHE_TTLS = {
+    products: 1000 * 60 * 5, // 5 minutes
+    myOrders: 1000 * 60 * 1, // 1 minute
+};
+
 // ... (cache functions unchanged)
 
 const readCache = (key, ttl) => {
