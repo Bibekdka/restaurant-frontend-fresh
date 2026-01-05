@@ -11,6 +11,7 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.replayIntegration(),
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
   // Tracing
   tracesSampleRate: 1.0,
@@ -18,6 +19,8 @@ Sentry.init({
   // Session Replay
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
+  // Logging
+  enableLogs: true,
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

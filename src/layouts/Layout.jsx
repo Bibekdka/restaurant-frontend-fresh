@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { api } from "../lib/api";
 import { ShoppingCart, User, LogOut, Menu as MenuIcon, ClipboardList, Home } from "lucide-react";
+import TestSentry from "../components/TestSentry";
 
 export default function Layout() {
     const { user, logout, userRole } = useAuth();
@@ -136,6 +137,8 @@ export default function Layout() {
             </header>
 
             <main>
+                {/* Only show for admin or in dev mode if needed, but for now showing to verify */}
+                {userRole === 'admin' && <TestSentry />}
                 <Outlet />
             </main>
         </div>
