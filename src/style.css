@@ -183,3 +183,67 @@ textarea:focus {
   color: var(--primary);
   font-size: 1.1rem;
 }
+
+/* Responsive Header */
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 40px;
+  border-radius: 0 0 16px 16px;
+  border-top: none;
+  margin: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.brand-link {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-text {
+  font-size: 1.3rem;
+  background: linear-gradient(to right, #fff, #ccc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 10px 15px;
+    flex-direction: row; /* Keep row but allow scroll or wrap if too many items */
+    overflow-x: auto;
+    border-radius: 0;
+  }
+  
+  .header-nav {
+    gap: 10px;
+  }
+
+  .brand-text {
+    display: none; /* Hide text on small screens to save space */
+  }
+
+  .btn {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+  }
+}
