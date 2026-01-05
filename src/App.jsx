@@ -41,7 +41,7 @@ export default function App() {
         <Router>
           <Routes>
             <Route path="/" element={<Layout />}>
-              <Route index element={<Navigate to="/menu" replace />} />
+              <Route index element={<Home />} />
               <Route path="menu" element={<Menu />} />
               <Route path="login" element={<Login />} />
 

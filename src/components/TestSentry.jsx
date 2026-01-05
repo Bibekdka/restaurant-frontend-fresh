@@ -2,8 +2,6 @@ import React from 'react';
 import * as Sentry from "@sentry/react";
 
 export default function TestSentry() {
-    const { logger } = Sentry;
-
     const handleButtonClick = () => {
         Sentry.startSpan(
             {
@@ -43,8 +41,6 @@ export default function TestSentry() {
                 } catch (e) {
                     console.error("Error sending metrics:", e);
                 }
-
-                // Simulate some work
 
                 // Simulate some work
                 setTimeout(() => {
