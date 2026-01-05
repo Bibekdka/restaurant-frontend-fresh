@@ -26,6 +26,30 @@ const readCache = (key, ttl) => {
     }
 };
 
+const writeCache = (key, value) => {
+    try {
+        const item = {
+            value,
+            ts: Date.now(),
+        };
+        localStorage.setItem(key, JSON.stringify(item));
+    } catch (e) {
+        // ignore
+    }
+};
+
+const clearCache = (prefix) => {
+    try {
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith(prefix)) {
+                localStorage.removeItem(key);
+            }
+        });
+    } catch (e) {
+        // ignore
+    }
+};
+
 // ...
 
 export const api = {

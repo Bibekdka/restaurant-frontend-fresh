@@ -114,7 +114,6 @@ export default function Layout() {
             </header>
 
             <main>
-                {/* Only show for admin or in dev mode if needed, but for now showing to verify */}
                 {userRole === 'admin' && <TestSentry />}
                 <Outlet />
             </main>
