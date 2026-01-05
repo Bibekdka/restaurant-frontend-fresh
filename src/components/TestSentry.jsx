@@ -21,6 +21,31 @@ export default function TestSentry() {
                 console.info("Info log from TestSentry");
                 console.warn("Warning log from TestSentry");
 
+                // Explicitly send a log message as requested
+                Sentry.captureMessage('User triggered test log', {
+                    level: 'info',
+                    tags: { log_source: 'sentry_test' }
+                });
+
+                // Sentry Metrics
+                try {
+                    if (Sentry.metrics) {
+                        // Counters (increment is the standard method for 'count')
+                        Sentry.metrics.increment('test_button_click', 1);
+                        // Gauge
+                        Sentry.metrics.gauge('test_gauge_value', 150);
+                        // Distribution
+                        Sentry.metrics.distribution('test_distribution_value', 200);
+                        console.log("Sentry metrics sent");
+                    } else {
+                        console.warn("Sentry.metrics is not available");
+                    }
+                } catch (e) {
+                    console.error("Error sending metrics:", e);
+                }
+
+                // Simulate some work
+
                 // Simulate some work
                 setTimeout(() => {
                     span.end();

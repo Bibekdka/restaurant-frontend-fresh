@@ -48,78 +48,76 @@ export default function Layout() {
 
     return (
         <div className="container">
-            return (
-            <div className="container">
-                <header className="glass-panel app-header">
-                    <Link to="/" className="brand-link">
-                        <div style={{ background: 'linear-gradient(45deg, var(--primary), var(--primary-light))', padding: '6px', borderRadius: '8px' }}>
-                            <span style={{ fontSize: '1.2rem' }}>🍽️</span>
-                        </div>
-                        <h2 className="brand-text">
-                            FINE DINING
-                        </h2>
+            <header className="glass-panel app-header">
+                <Link to="/" className="brand-link">
+                    <div style={{ background: 'linear-gradient(45deg, var(--primary), var(--primary-light))', padding: '6px', borderRadius: '8px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>🍽️</span>
+                    </div>
+                    <h2 className="brand-text">
+                        FINE DINING
+                    </h2>
+                </Link>
+
+                <nav className="header-nav">
+                    <Link to="/menu" className={`btn ${location.pathname === '/menu' || location.pathname === '/' ? 'btn-primary' : 'btn-secondary'}`} style={{ display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}>
+                        <MenuIcon size={18} /> <span className="hidden-mobile">Menu</span>
                     </Link>
 
-                    <nav className="header-nav">
-                        <Link to="/menu" className={`btn ${location.pathname === '/menu' || location.pathname === '/' ? 'btn-primary' : 'btn-secondary'}`} style={{ display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}>
-                            <MenuIcon size={18} /> <span className="hidden-mobile">Menu</span>
+                    {user && (
+                        <Link to="/my-orders" className={`btn ${location.pathname === '/my-orders' ? 'btn-primary' : 'btn-secondary'}`} style={{ display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}>
+                            <ClipboardList size={18} /> <span className="hidden-mobile">My Orders</span>
                         </Link>
+                    )}
 
-                        {user && (
-                            <Link to="/my-orders" className={`btn ${location.pathname === '/my-orders' ? 'btn-primary' : 'btn-secondary'}`} style={{ display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}>
-                                <ClipboardList size={18} /> <span className="hidden-mobile">My Orders</span>
-                            </Link>
-                        )}
-
-                        {userRole === 'admin' && (
-                            <Link to="/admin/orders" className={`btn ${location.pathname === '/admin/orders' ? 'btn-primary' : 'btn-secondary'}`} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}>
-                                <ClipboardList size={18} /> <span className="hidden-mobile">Admin</span>
-                                {pendingOrders > 0 && (
-                                    <span style={{
-                                        position: 'absolute', top: -5, right: -5,
-                                        background: '#ef4444', color: 'white',
-                                        borderRadius: '50%', width: '18px', height: '18px',
-                                        fontSize: '11px', display: 'flex', alignItems: 'center',
-                                        justifyContent: 'center', border: '2px solid var(--bg-dark)'
-                                    }}>
-                                        {pendingOrders}
-                                    </span>
-                                )}
-                            </Link>
-                        )}
-
-                        <Link to="/cart" className="btn btn-secondary" style={{ position: 'relative', display: 'flex', alignItems: 'center', background: location.pathname === '/cart' ? 'var(--primary)' : 'rgba(255,255,255,0.05)' }}>
-                            <ShoppingCart size={20} />
-                            {cartCount > 0 && (
-                                <span style={{ position: 'absolute', top: -5, right: -5, background: 'var(--primary)', borderRadius: '50%', width: '18px', height: '18px', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-dark)' }}>
-                                    {cartCount}
+                    {userRole === 'admin' && (
+                        <Link to="/admin/orders" className={`btn ${location.pathname === '/admin/orders' ? 'btn-primary' : 'btn-secondary'}`} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}>
+                            <ClipboardList size={18} /> <span className="hidden-mobile">Admin</span>
+                            {pendingOrders > 0 && (
+                                <span style={{
+                                    position: 'absolute', top: -5, right: -5,
+                                    background: '#ef4444', color: 'white',
+                                    borderRadius: '50%', width: '18px', height: '18px',
+                                    fontSize: '11px', display: 'flex', alignItems: 'center',
+                                    justifyContent: 'center', border: '2px solid var(--bg-dark)'
+                                }}>
+                                    {pendingOrders}
                                 </span>
                             )}
                         </Link>
+                    )}
 
-                        {user ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ width: '35px', height: '35px', borderRadius: '50%', background: 'var(--glass)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--glass-border)' }}>
-                                    <User size={18} color="var(--primary-light)" />
-                                </div>
-                                <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '8px' }}>
-                                    <LogOut size={18} />
-                                </button>
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <Link to="/login" className="btn btn-secondary" style={{ padding: '8px 15px', fontSize: '0.9rem' }}>Login</Link>
-                                <Link to="/login?register=true" className="btn btn-primary" style={{ padding: '8px 15px', fontSize: '0.9rem' }}>Sign Up</Link>
-                            </div>
+                    <Link to="/cart" className="btn btn-secondary" style={{ position: 'relative', display: 'flex', alignItems: 'center', background: location.pathname === '/cart' ? 'var(--primary)' : 'rgba(255,255,255,0.05)' }}>
+                        <ShoppingCart size={20} />
+                        {cartCount > 0 && (
+                            <span style={{ position: 'absolute', top: -5, right: -5, background: 'var(--primary)', borderRadius: '50%', width: '18px', height: '18px', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-dark)' }}>
+                                {cartCount}
+                            </span>
                         )}
-                    </nav>
-                </header>
+                    </Link>
 
-                <main>
-                    {/* Only show for admin or in dev mode if needed, but for now showing to verify */}
-                    {userRole === 'admin' && <TestSentry />}
-                    <Outlet />
-                </main>
-            </div>
-            );
+                    {user ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '35px', height: '35px', borderRadius: '50%', background: 'var(--glass)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--glass-border)' }}>
+                                <User size={18} color="var(--primary-light)" />
+                            </div>
+                            <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '8px' }}>
+                                <LogOut size={18} />
+                            </button>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <Link to="/login" className="btn btn-secondary" style={{ padding: '8px 15px', fontSize: '0.9rem' }}>Login</Link>
+                            <Link to="/login?register=true" className="btn btn-primary" style={{ padding: '8px 15px', fontSize: '0.9rem' }}>Sign Up</Link>
+                        </div>
+                    )}
+                </nav>
+            </header>
+
+            <main>
+                {/* Only show for admin or in dev mode if needed, but for now showing to verify */}
+                {userRole === 'admin' && <TestSentry />}
+                <Outlet />
+            </main>
+        </div>
+    );
 }
