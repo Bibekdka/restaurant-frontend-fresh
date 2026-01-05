@@ -252,6 +252,29 @@ export const api = {
         return data.orders ? data : { orders: data };
     },
 
+    getDashboardStats: async (token) => {
+        const response = await fetch(`${API_URL}/api/orders/stats`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        if (!response.ok) throw new Error((await response.json()).message || 'Failed to fetch stats');
+        return response.json();
+    },
+
+    updateOrderStatus: async (orderId, status, token) => {
+        const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ status }),
+        });
+        if (!response.ok) throw new Error((await response.json()).message || 'Failed to update status');
+        return response.json();
+    },
+
     getMyOrders: async (token, page = 1, limit = 20) => {
         const cacheKey = `cache_myorders_${token}_page_${page}_limit_${limit}`;
         const cached = readCache(cacheKey, CACHE_TTLS.myOrders);

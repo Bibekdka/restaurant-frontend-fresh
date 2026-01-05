@@ -61,6 +61,24 @@ export default function MyOrders() {
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
+
+                                    {/* Status Badge */}
+                                    <span style={{
+                                        padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold',
+                                        backgroundColor:
+                                            order.status === 'placed' ? '#fbbf24' : // Amber
+                                                order.status === 'accepted' ? '#3b82f6' : // Blue
+                                                    order.status === 'in kitchen' ? '#f59e0b' : // Orange
+                                                        order.status === 'out for delivery' ? '#8b5cf6' : // Purple
+                                                            order.status === 'delivered' ? '#10b981' : // Emerald
+                                                                order.status === 'rejected' || order.status === 'cancelled' ? '#ef4444' : // Red
+                                                                    '#6b7280', // Gray default
+                                        color: '#fff',
+                                        textTransform: 'capitalize'
+                                    }}>
+                                        {order.status || (order.isDelivered ? 'Delivered' : 'Processing')}
+                                    </span>
+
                                     <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>${order.totalPrice.toFixed(2)}</span>
                                     <button
                                         onClick={() => handleReorder(order)}

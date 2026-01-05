@@ -1,6 +1,8 @@
+import React, { useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import { api } from "../lib/api";
 import { ShoppingCart, User, LogOut, Menu as MenuIcon, ClipboardList, Home } from "lucide-react";
 
 export default function Layout() {
@@ -8,6 +10,7 @@ export default function Layout() {
     const { cart } = useCart();
     const navigate = useNavigate();
     const location = useLocation();
+    const [pendingOrders, setPendingOrders] = useState(0);
 
     const handleLogout = () => {
         logout();
@@ -15,6 +18,32 @@ export default function Layout() {
     };
 
     const cartCount = cart.reduce((a, c) => a + c.qty, 0);
+
+    useEffect(() => {
+        if (userRole === 'admin') {
+            const checkOrders = async () => {
+                try {
+                    const token = localStorage.getItem('token');
+                    if (token) {
+                        const data = await api.getOrders(token, 1, 100);
+                        const orders = data.orders || data || [];
+                        // Count orders that are just 'Placed' or don't have a status yet (meaning legacy placed)
+                        // And exclude delivered/rejected/cancelled
+                        const count = orders.filter(o =>
+                            (!o.status || o.status === 'Placed') &&
+                            !o.isDelivered &&
+                            !o.status?.match(/rejected|cancelled/i)
+                        ).length;
+                        setPendingOrders(count);
+                    }
+                } catch (e) { console.error(e); }
+            };
+
+            checkOrders();
+            const interval = setInterval(checkOrders, 30000); // Check every 30s
+            return () => clearInterval(interval);
+        }
+    }, [userRole]);
 
     return (
         <div className="container">
@@ -63,8 +92,19 @@ export default function Layout() {
                     )}
 
                     {userRole === 'admin' && (
-                        <Link to="/admin/orders" className={`btn ${location.pathname === '/admin/orders' ? 'btn-primary' : 'btn-secondary'}`} style={{ display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}>
+                        <Link to="/admin/orders" className={`btn ${location.pathname === '/admin/orders' ? 'btn-primary' : 'btn-secondary'}`} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}>
                             <ClipboardList size={18} /> Admin
+                            {pendingOrders > 0 && (
+                                <span style={{
+                                    position: 'absolute', top: -5, right: -5,
+                                    background: '#ef4444', color: 'white',
+                                    borderRadius: '50%', width: '18px', height: '18px',
+                                    fontSize: '11px', display: 'flex', alignItems: 'center',
+                                    justifyContent: 'center', border: '2px solid var(--bg-dark)'
+                                }}>
+                                    {pendingOrders}
+                                </span>
+                            )}
                         </Link>
                     )}
 

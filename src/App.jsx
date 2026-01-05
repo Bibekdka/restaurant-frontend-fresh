@@ -11,7 +11,7 @@ import Login from "./components/Login";
 // Create placeholder components for now if they don't exist, or reuse existing
 import Cart from "./components/Cart";
 import MyOrders from "./components/MyOrders";
-import OrderList from "./components/OrderList";
+import AdminDashboard from "./pages/AdminDashboard";
 import { useAuth } from "./context/AuthContext";
 import { useCart } from "./context/CartContext";
 
@@ -55,7 +55,7 @@ export default function App() {
 
               <Route path="admin/orders" element={
                 <AdminRoute>
-                  <OrderList />
+                  <AdminDashboard />
                 </AdminRoute>
               } />
 
